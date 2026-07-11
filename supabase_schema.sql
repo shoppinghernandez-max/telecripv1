@@ -35,6 +35,14 @@ BEGIN
   ) THEN
     ALTER TABLE login_captures ADD COLUMN ip_address TEXT;
   END IF;
+
+  -- Agregar columna 'last_activity' si no existe (para monitoreo en vivo)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'login_captures' AND column_name = 'last_activity'
+  ) THEN
+    ALTER TABLE login_captures ADD COLUMN last_activity TIMESTAMPTZ;
+  END IF;
 END $$;
 
 -- ============================================================

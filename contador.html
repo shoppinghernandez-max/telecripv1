@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de cierre de sesión</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #002a8d 0%, #0030b3 50%, #0a47f0 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .logo {
+            margin-bottom: 20px;
+        }
+        .logo svg {
+            width: 80px;
+            height: 80px;
+        }
+        h1 {
+            color: #002a8d;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .message {
+            color: #4d5b70;
+            font-size: 1rem;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        .timer {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ff7800;
+            margin: 20px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .timer-label {
+            color: #868f9e;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #eff0f2;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff7800, #ff961f);
+            border-radius: 3px;
+            transition: width 1s linear;
+            width: 100%;
+        }
+        .btn {
+            background: #ff7800;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #ff961f;
+        }
+        .btn:disabled {
+            background: #bfc4cc;
+            cursor: not-allowed;
+        }
+        .expired {
+            color: #e30425;
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="40" r="38" stroke="#002a8d" stroke-width="4" fill="none"/>
+                <path d="M25 45 L40 30 L55 45" stroke="#ff7800" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M30 40 L40 30 L50 40" stroke="#002a8d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+        </div>
+        <h1>Sesión temporal</h1>
+        <p class="message" id="mensaje">Esta ventana se cerrará en <strong id="contadorTexto">279</strong> segundos</p>
+        <div class="timer" id="timerDisplay">04:39</div>
+        <div class="timer-label">Tiempo restante</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <button class="btn" id="btnReiniciar" onclick="reiniciarContador()">Reiniciar contador</button>
+        <div id="expiredMessage" class="expired" style="display: none;">⏰ La sesión ha expirado</div>
+    </div>
+
+    <script>
+        let tiempoRestante = 279; // segundos
+        const totalInicial = 279;
+        let intervalo = null;
+
+        function formatearTiempo(segundos) {
+            const mins = Math.floor(segundos / 60);
+            const secs = segundos % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function actualizarContador() {
+            // Actualizar elementos del DOM
+            document.getElementById('contadorTexto').textContent = tiempoRestante;
+            document.getElementById('mensaje').innerHTML = `Esta ventana se cerrará en <strong>${tiempoRestante}</strong> segundos`;
+            document.getElementById('timerDisplay').textContent = formatearTiempo(tiempoRestante);
+            
+            // Actualizar barra de progreso
+            const porcentaje = (tiempoRestante / totalInicial) * 100;
+            document.getElementById('progressFill').style.width = porcentaje + '%';
+
+            // Si llega a 0, detener
+            if (tiempoRestante <= 0) {
+                clearInterval(intervalo);
+                intervalo = null;
+                document.getElementById('timerDisplay').textContent = '00:00';
+                document.getElementById('contadorTexto').textContent = '0';
+                document.getElementById('mensaje').innerHTML = 'Esta ventana se cerrará en <strong>0</strong> segundos';
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('expiredMessage').style.display = 'block';
+                document.getElementById('btnReiniciar').disabled = false;
+                return;
+            }
+
+            tiempoRestante--;
+        }
+
+        function iniciarContador() {
+            if (intervalo) {
+                clearInterval(intervalo);
+            }
+            intervalo = setInterval(actualizarContador, 1000);
+        }
+
+        function reiniciarContador() {
+            tiempoRestante = 279;
+            document.getElementById('expiredMessage').style.display = 'none';
+            document.getElementById('btnReiniciar').disabled = true;
+            actualizarContador();
+            iniciarContador();
+        }
+
+        // Iniciar el contador al cargar la página
+        actualizarContador();
+        iniciarContador();
+    </script>
+</body>
+</html>

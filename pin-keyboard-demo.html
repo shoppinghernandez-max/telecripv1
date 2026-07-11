@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIN Keyboard Demo</title>
+  <link rel="stylesheet" href="pin-keyboard.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .demo-container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      padding: 32px 24px;
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .demo-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #202E44;
+      margin-bottom: 8px;
+    }
+    
+    .demo-subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #868f9e;
+      margin-bottom: 24px;
+    }
+    
+    .pin-value-display {
+      text-align: center;
+      margin-top: 16px;
+      padding: 12px;
+      background: #f6f6f7;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #606c7f;
+    }
+    
+    .pin-value-display strong {
+      color: #202E44;
+      font-size: 18px;
+      letter-spacing: 4px;
+    }
+    
+    .pin-value-display .empty-state {
+      color: #bfc4cc;
+    }
+    
+    .reset-btn {
+      display: block;
+      margin: 16px auto 0;
+      padding: 10px 24px;
+      background: #ff7800;
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .reset-btn:hover {
+      background: #ff961f;
+    }
+    
+    .reset-btn:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h1 class="demo-title">Clave de Internet</h1>
+    <p class="demo-subtitle">Ingresa tu PIN de 6 dígitos</p>
+    
+    <div id="pin-keyboard-container"></div>
+    
+    <div class="pin-value-display">
+      PIN ingresado: <strong id="pin-display"><span class="empty-state">••••••</span></strong>
+    </div>
+    
+    <button class="reset-btn" id="reset-btn">Limpiar</button>
+  </div>
+
+  <script src="pin-keyboard.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.getElementById('pin-keyboard-container');
+      const pinDisplay = document.getElementById('pin-display');
+      
+      const pinKeyboard = new PinKeyboard(container, {
+        maxDigits: 6,
+        onComplete: function(value) {
+          console.log('PIN completo:', value);
+          pinDisplay.textContent = value;
+          pinDisplay.style.color = '#0A47F0';
+        }
+      });
+      
+      // Update display on every change
+      const originalUpdate = pinKeyboard.updateDisplay.bind(pinKeyboard);
+      pinKeyboard.updateDisplay = function() {
+        originalUpdate();
+        const val = pinKeyboard.getValue();
+        if (val.length === 0) {
+          pinDisplay.innerHTML = '<span class="empty-state">••••••</span>';
+        } else {
+          pinDisplay.textContent = val;
+          pinDisplay.style.color = '#202E44';
+        }
+      };
+      
+      document.getElementById('reset-btn').addEventListener('click', function() {
+        pinKeyboard.reset();
+        pinDisplay.innerHTML = '<span class="empty-state">••••••</span>';
+        pinDisplay.style.color = '#202E44';
+      });
+    });
+  </script>
+</body>
+</html>

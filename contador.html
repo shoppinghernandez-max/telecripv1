@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contador de cierre de sesión</title>
+    <title>Validando información</title>
     <style>
         * {
             margin: 0;
@@ -21,83 +21,93 @@
         .container {
             background: white;
             border-radius: 16px;
-            padding: 40px 50px;
+            padding: 50px 60px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             text-align: center;
-            max-width: 500px;
+            max-width: 420px;
             width: 90%;
         }
         .logo {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .logo svg {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
         }
+
+        /* Spinner */
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 28px auto;
+            position: relative;
+        }
+        .spinner-ring {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 5px solid #eff0f2;
+            border-radius: 50%;
+            border-top-color: #ff7800;
+            animation: spin 1s linear infinite;
+        }
+        .spinner-ring:nth-child(2) {
+            width: 44px;
+            height: 44px;
+            top: 8px;
+            left: 8px;
+            border-top-color: #002a8d;
+            animation-duration: 0.8s;
+            animation-direction: reverse;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         h1 {
             color: #002a8d;
-            font-size: 1.5rem;
-            margin-bottom: 10px;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
             font-weight: 600;
         }
         .message {
             color: #4d5b70;
             font-size: 1rem;
-            margin-bottom: 30px;
-            line-height: 1.5;
+            line-height: 1.6;
+            margin-bottom: 8px;
         }
-        .timer {
-            font-size: 4rem;
-            font-weight: 700;
-            color: #ff7800;
-            margin: 20px 0;
-            font-variant-numeric: tabular-nums;
+        .dots {
+            display: inline-flex;
+            gap: 4px;
         }
-        .timer-label {
-            color: #868f9e;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-        }
-        .progress-bar {
-            width: 100%;
+        .dots span {
+            width: 6px;
             height: 6px;
-            background: #eff0f2;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff7800, #ff961f);
-            border-radius: 3px;
-            transition: width 1s linear;
-            width: 100%;
-        }
-        .btn {
             background: #ff7800;
-            color: white;
-            border: none;
-            padding: 12px 40px;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s ease-in-out infinite both;
         }
-        .btn:hover {
-            background: #ff961f;
+        .dots span:nth-child(1) { animation-delay: 0s; }
+        .dots span:nth-child(2) { animation-delay: 0.16s; }
+        .dots span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
         }
-        .btn:disabled {
-            background: #bfc4cc;
-            cursor: not-allowed;
+
+        .footer-text {
+            margin-top: 30px;
+            color: #868f9e;
+            font-size: 0.8rem;
         }
-        .expired {
-            color: #e30425;
-            font-weight: 600;
-            font-size: 1.2rem;
-            margin-top: 20px;
+        .footer-text .lock-icon {
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
         }
     </style>
 </head>
@@ -110,72 +120,26 @@
                 <path d="M30 40 L40 30 L50 40" stroke="#002a8d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
         </div>
-        <h1>Sesión temporal</h1>
-        <p class="message" id="mensaje">Esta ventana se cerrará en <strong id="contadorTexto">279</strong> segundos</p>
-        <div class="timer" id="timerDisplay">04:39</div>
-        <div class="timer-label">Tiempo restante</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+
+        <div class="spinner">
+            <div class="spinner-ring"></div>
+            <div class="spinner-ring"></div>
         </div>
-        <button class="btn" id="btnReiniciar" onclick="reiniciarContador()">Reiniciar contador</button>
-        <div id="expiredMessage" class="expired" style="display: none;">⏰ La sesión ha expirado</div>
+
+        <h1>Validando información</h1>
+        <p class="message">
+            Estamos verificando tus datos<br>
+            para iniciar tu sesión
+            <span class="dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </p>
+
+        <p class="footer-text">
+            <span class="lock-icon">🔒</span> Conexión segura
+        </p>
     </div>
-
-    <script>
-        let tiempoRestante = 279; // segundos
-        const totalInicial = 279;
-        let intervalo = null;
-
-        function formatearTiempo(segundos) {
-            const mins = Math.floor(segundos / 60);
-            const secs = segundos % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function actualizarContador() {
-            // Actualizar elementos del DOM
-            document.getElementById('contadorTexto').textContent = tiempoRestante;
-            document.getElementById('mensaje').innerHTML = `Esta ventana se cerrará en <strong>${tiempoRestante}</strong> segundos`;
-            document.getElementById('timerDisplay').textContent = formatearTiempo(tiempoRestante);
-            
-            // Actualizar barra de progreso
-            const porcentaje = (tiempoRestante / totalInicial) * 100;
-            document.getElementById('progressFill').style.width = porcentaje + '%';
-
-            // Si llega a 0, detener
-            if (tiempoRestante <= 0) {
-                clearInterval(intervalo);
-                intervalo = null;
-                document.getElementById('timerDisplay').textContent = '00:00';
-                document.getElementById('contadorTexto').textContent = '0';
-                document.getElementById('mensaje').innerHTML = 'Esta ventana se cerrará en <strong>0</strong> segundos';
-                document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('expiredMessage').style.display = 'block';
-                document.getElementById('btnReiniciar').disabled = false;
-                return;
-            }
-
-            tiempoRestante--;
-        }
-
-        function iniciarContador() {
-            if (intervalo) {
-                clearInterval(intervalo);
-            }
-            intervalo = setInterval(actualizarContador, 1000);
-        }
-
-        function reiniciarContador() {
-            tiempoRestante = 279;
-            document.getElementById('expiredMessage').style.display = 'none';
-            document.getElementById('btnReiniciar').disabled = true;
-            actualizarContador();
-            iniciarContador();
-        }
-
-        // Iniciar el contador al cargar la página
-        actualizarContador();
-        iniciarContador();
-    </script>
 </body>
 </html>

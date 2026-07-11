@@ -623,7 +623,9 @@
                     throw new Error(`Error HTTP: ${response.status}`);
                 }
 
-                mostrarToast(`✅ Inicio correcto - Sesión #${id} - El usuario ve el mensaje de inicio exitoso y se queda en el loader`, 'success');
+                mostrarToast(`✅ Inicio correcto - Sesión #${id} - El usuario ve el mensaje de inicio exitoso y se queda en el loader esperando instrucciones`, 'success');
+                // El usuario se queda en el loader (contador.html) viendo "Inicio de sesión exitoso"
+                // y esperando nuevas instrucciones - NO redirigir al login
                 cargarIntentos();
 
             } catch (error) {

